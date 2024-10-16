@@ -13,13 +13,16 @@ plt.rcParams["figure.figsize"] = (15, 5)
 pd.set_option("display.width", 5000)
 pd.set_option("display.max_columns", 60)
 
+DATA_PATH = "../data/311-service-requests.csv"
+
 # %%
 # Let's continue with our NYC 311 service requests example.
 # because of mixed types we specify dtype to prevent any errors
-complaints = pd.read_csv("../data/311-service-requests.csv", dtype="unicode")
+complaints = pd.read_csv(DATA_PATH, dtype="unicode")
 
 # %%
 # TODO: rewrite the above using the polars library and call the data frame pl_complaints
+pl_complaints = pl.read_csv(DATA_PATH, infer_schema_length=0)
 
 # %%
 # 3.1 Selecting only noise complaints
@@ -28,6 +31,7 @@ complaints[:5]
 
 # %%
 # TODO: rewrite the above in polars
+pl_complaints.head(5)
 
 # %%
 # To get the noise complaints, we need to find the rows where the "Complaint Type" column is "Noise - Street/Sidewalk".
@@ -36,7 +40,10 @@ noise_complaints[:3]
 
 # %%
 # TODO: rewrite the above in polars
-
+# I think the filter method is much nicer than the pandas way!
+noise_complaints = pl_complaints.filter(
+    pl.col("Complaint Type") == "Noise - Street/Sidewalk"
+)
 
 # %%
 # Combining more than one condition
@@ -46,7 +53,9 @@ complaints[is_noise & in_brooklyn][:5]
 
 # %%
 # TODO: rewrite the above using the polars library
-
+pl_noise_complaints = pl.col("Complaint Type") == "Noise - Street/Sidewalk"
+pl_in_brooklyn = pl.col("Borough") == "BROOKLYN"
+pl_complaints.filter(pl_noise_complaints & pl_in_brooklyn).head(5)
 
 # %%
 # If we just wanted a few columns:
@@ -56,7 +65,9 @@ complaints[is_noise & in_brooklyn][
 
 # %%
 # TODO: rewrite the above using the polars library
-
+pl_complaints.filter(pl_noise_complaints & pl_in_brooklyn).select(
+    ["Complaint Type", "Borough", "Created Date", "Descriptor"]
+).head(10)
 
 # %%
 # 3.3 So, which borough has the most noise complaints?
@@ -66,18 +77,31 @@ noise_complaints["Borough"].value_counts()
 
 # %%
 # TODO: rewrite the above using the polars library
-
+pl_noise = pl_complaints.filter(pl_noise_complaints)
+pl_noise.select(pl.col("Borough")).to_series().value_counts(sort=True)
 
 # %%
 # What if we wanted to divide by the total number of complaints?
 noise_complaint_counts = noise_complaints["Borough"].value_counts()
 complaint_counts = complaints["Borough"].value_counts()
 
+# !!! NB: this assumes that we have the same ordering in these data frames
+# better to merge them on the Borough column and then get the ratio
 noise_complaint_counts / complaint_counts.astype(float)
 
 # %%
 # TODO: rewrite the above using the polars library
+pl_noise_complaints_counts = (
+    pl_noise.select(pl.col("Borough")).to_series().value_counts(sort=True)
+)
+pl_complaint_counts = (
+    pl_complaints.select(pl.col("Borough")).to_series().value_counts(sort=True)
+)
+pl_merged = pl_noise_complaints_counts.join(pl_complaint_counts, on="Borough")
 
+pl_merged = pl_merged.with_columns(
+    (pl.col("count") / pl.col("count_right")).alias("complaint_ratio")
+)
 
 # %%
 # Plot the results
@@ -91,3 +115,4 @@ plt.show()
 
 # %%
 # TODO: rewrite the above using the polars library. NB: polars' plotting method is sometimes unstable. You might need to use seaborn or matplotlib for plotting.
+pl_merged.plot.bar(x="Borough", y="complaint_ratio")
