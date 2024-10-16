@@ -92,5 +92,3 @@ plt.show()
 # %%
 # TODO: check if the code to plot the 10 most common complaints works also with your polars data frame
 pl_most_complaints.plot.bar(x="Complaint Type", y="count")
-
-# %%
