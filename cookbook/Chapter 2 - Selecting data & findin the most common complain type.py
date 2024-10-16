@@ -19,11 +19,15 @@ pl_complaints = pl.read_csv(DATA_PATH, infer_schema_length=0)
 # see a discussion about dtype argument here: https://github.com/pola-rs/polars/issues/8230
 
 # %%
-# or read the error message: ComputeError: could not parse `NA` as dtype `i64` at column 'Incident Zip' (column number 9). 
-# we can handle "NA" explicitly
+# or read the error message: ComputeError: could not parse `NA` as dtype `i64` at column 'Incident Zip' (column number 9).
 pl_complaints_na = pl.read_csv(DATA_PATH)
+
 # %%
+# we can handle "NA" explicitly
+pl_complaints_na = pl.read_csv(DATA_PATH, null_values="NA")
 # this throws another erro: ComputeError: could not parse `35209-3114` as dtype `i64` at column 'Incident Zip' (column number 9) -> the zip code gives us trouble because some zip codes have a dash.
+
+# %%
 # let's read this particular column as a string
 pl_complaints_explicit = pl.read_csv(DATA_PATH, dtypes={"Incident Zip": pl.Utf8})
 
@@ -67,6 +71,13 @@ complaint_counts[:10]
 
 # %%
 # TODO: rewrite the above using the polars library
+pl_most_complaints = (
+    pl_complaints.select(pl.col("Complaint Type"))
+    .to_series()
+    .value_counts()
+    .sort("count", descending=True)
+    .head(10)
+)
 
 # %%
 # Plot the top 10 most common complaints
@@ -80,3 +91,6 @@ plt.show()
 
 # %%
 # TODO: check if the code to plot the 10 most common complaints works also with your polars data frame
+pl_most_complaints.plot.bar(x="Complaint Type", y="count")
+
+# %%
