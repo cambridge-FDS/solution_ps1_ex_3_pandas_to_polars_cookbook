@@ -1,6 +1,7 @@
 # %%
 import pandas as pd
 import matplotlib.pyplot as plt
+import polars as pl
 
 # Make the graphs a bit prettier, and bigger
 plt.style.use("ggplot")
@@ -12,9 +13,11 @@ plt.rcParams["font.family"] = "sans-serif"
 pd.set_option("display.width", 5000)
 pd.set_option("display.max_columns", 60)
 
+DATA_PATH = "../data/bikes.csv"
+
 # %% Load the data
 bikes = pd.read_csv(
-    "../data/bikes.csv",
+    DATA_PATH,
     sep=";",
     encoding="latin1",
     parse_dates=["Date"],
@@ -26,6 +29,9 @@ plt.show()
 
 # TODO: Load the data using Polars
 # Hint: Use pl.read_csv() with appropriate options
+pl_fixed_df = pl.read_csv(
+    DATA_PATH, separator=";", encoding="latin1", try_parse_dates=True
+)
 
 # %% Plot Berri 1 data
 # Next up, we're just going to look at the Berri bike path. Berri is a street in Montreal, with a pretty important bike path. I use it mostly on my way to the library now, but I used to take it to work sometimes when I worked in Old Montreal.
@@ -36,7 +42,8 @@ berri_bikes[:5]
 
 # TODO: Create a dataframe with just the Berri bikepath using Polars
 # Hint: Use pl.DataFrame.select() and call the data frame pl_berri_bikes
-
+pl_berri_bikes = pl_fixed_df.select(["Date", "Berri 1"])
+pl_berri_bikes.head(5)
 
 # %% Add weekday column
 # Next, we need to add a 'weekday' column. Firstly, we can get the weekday from the index. We haven't talked about indexes yet, but the index is what's on the left on the above dataframe, under 'Date'. It's basically all the days of the year.
@@ -59,7 +66,12 @@ berri_bikes[:5]
 
 # TODO: Add a weekday column using Polars.
 # Hint: Polars does not use an index.
+pl_berri_bikes = pl_berri_bikes.with_columns(
+    pl.col("Date").dt.weekday().alias("weekday")
+)
+pl_berri_bikes.head(5)
 
+# NB: pandas counts weekdays from 0-6 and polars from 1-7
 
 # %%
 # Let's add up the cyclists by weekday
@@ -72,7 +84,9 @@ weekday_counts = berri_bikes.groupby("weekday").aggregate(sum)
 weekday_counts
 
 # TODO: Group by weekday and sum using Polars
-
+pl_weekday_counts = pl_berri_bikes.group_by("weekday").agg(
+    pl.col("Berri 1").sum().alias("Berri 1")
+)
 
 # %% Rename index
 weekday_counts.index = [
@@ -86,13 +100,27 @@ weekday_counts.index = [
 ]
 
 # TODO: Rename index using Polars
-
+# No index in Polars :-) But we can rename the column values
+weekdays = {
+    1: "Monday",
+    2: "Tuesday",
+    3: "Wednesday",
+    4: "Thursday",
+    5: "Friday",
+    6: "Saturday",
+    7: "Sunday",
+}
+pl_weekday_counts = pl_weekday_counts.with_columns(
+    pl.col("weekday").map_elements(lambda s: weekdays[s]).alias("weekday_renamed")
+)
 
 # %% Plot results
 weekday_counts.plot(kind="bar")
 plt.show()
 
 # TODO: Plot results using Polars and matplotlib
-
+pl_weekday_counts.plot.bar(x="weekday_renamed", y="Berri 1")
 # %% Final message
 print("Analysis complete!")
+
+# %%
