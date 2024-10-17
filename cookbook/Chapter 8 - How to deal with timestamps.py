@@ -1,20 +1,24 @@
 # %%
+from os import sep
 import pandas as pd
+import polars as pl
 
+
+DATA_PATH = "../data/popularity-contest"
 # %%
 # Parsing Unix timestamps
 # It's not obvious how to deal with Unix timestamps in pandas -- it took me quite a while to figure this out. The file we're using here is a popularity-contest file of packages.
 
 # Read it, and remove the last row
 popcon = pd.read_csv(
-    "../data/popularity-contest",
+    DATA_PATH,
     sep=" ",
-)[:-1]
+)  # [:-1]
 popcon.columns = ["atime", "ctime", "package-name", "mru-program", "tag"]
 popcon[:5]
 
 # TODO: please reimplement this using Polars
-
+# pl_popcon = pl.scan_csv(DATA_PATH, separator=" ").drop(pl.col("POPULARITY-CONTEST-0")).collect()
 
 # %%
 # The magical part about parsing timestamps in pandas is that numpy datetimes are already stored as Unix timestamps. So all we need to do is tell pandas that these integers are actually datetimes -- it doesn't need to do any conversion at all.
@@ -23,6 +27,10 @@ popcon["atime"] = popcon["atime"].astype(int)
 popcon["ctime"] = popcon["ctime"].astype(int)
 
 # TODO: please reimplement this using Polars
+pl_popcon = pl_popcon.with_columns(
+    pl.col("atime").cast(pl.Int64),
+    pl.col("ctime").cast(pl.Int64),
+)
 
 
 # %%

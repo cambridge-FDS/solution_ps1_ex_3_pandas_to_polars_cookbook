@@ -2,20 +2,27 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import polars as pl
+import seaborn as sns
 
 plt.style.use("ggplot")
 plt.rcParams["figure.figsize"] = (15, 3)
 plt.rcParams["font.family"] = "sans-serif"
 
+DATA_PATH = "../data/weather_2012.csv"
+
 # %%
 # By the end of this chapter, we're going to have downloaded all of Canada's weather data for 2012, and saved it to a CSV. We'll do this by downloading it one month at a time, and then combining all the months together.
 # Here's the temperature every hour for 2012!
 
-weather_2012_final = pd.read_csv("../data/weather_2012.csv", index_col="date_time")
+weather_2012_final = pd.read_csv(DATA_PATH, index_col="date_time")
 weather_2012_final["temperature_c"].plot(figsize=(15, 6))
 plt.show()
 
 # TODO: rewrite using Polars
+pl_weather_2012_final = pl.read_csv(DATA_PATH, try_parse_dates=True)
+# pl_weather_2012_final.plot.line(x="date_time", y="temperature_c")  # to many rows; so let's use seaborn
+sns.lineplot(data=pl_weather_2012_final, x="date_time", y="temperature_c")
 
 # %%
 # Okay, let's start from the beginning.
@@ -25,8 +32,8 @@ plt.show()
 # here: https://github.com/jvns/pandas-cookbook/pull/74 and click on "Files changed" and then fix the url.
 
 
-# This URL has to be fixed first!
-url_template = "http://climate.weather.gc.ca/climateData/bulkdata_e.html?format=csv&stationID=5415&Year={year}&Month={month}&timeframe=1&submit=Download+Data"
+# This URL has to be fixed first! -> was fixed! changing climateData to climate_data and bulkdata to bulk_data
+url_template = "http://climate.weather.gc.ca/climate_data/bulk_data_e.html?format=csv&stationID=5415&Year={year}&Month={month}&timeframe=1&submit=Download+Data"
 
 year = 2012
 month = 3
@@ -40,6 +47,9 @@ weather_mar2012 = pd.read_csv(
 )
 weather_mar2012.head()
 
+pl.read_()
+
+
 # %%
 # Let's clean up the data a bit.
 # You'll notice in the summary above that there are a few columns which are are either entirely empty or only have a few values in them. Let's get rid of all of those with `dropna`.
@@ -48,6 +58,9 @@ weather_mar2012 = weather_mar2012.dropna(axis=1, how="any")
 weather_mar2012[:5]
 
 # This is much better now -- we only have columns with real data.
+
+pl_weather_mar2012 = pl.from_pandas(weather_mar2012)
+pl_weather_mar2012 = pl_weather_mar2012
 
 # %%
 # Let's get rid of columns that we do not need.
