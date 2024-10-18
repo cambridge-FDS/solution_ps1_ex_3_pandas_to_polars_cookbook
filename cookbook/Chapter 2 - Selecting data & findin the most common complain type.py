@@ -76,7 +76,7 @@ pl_most_complaints = (
     .to_series()  # I think not necessary
     .value_counts()
     .sort("count", descending=True)
-    .head(10)
+    .head(10)  # This is already making it the top 10 df for plotting later
 )
 
 # %%
