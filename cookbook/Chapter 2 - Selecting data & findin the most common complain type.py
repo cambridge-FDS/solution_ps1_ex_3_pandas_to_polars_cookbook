@@ -73,7 +73,7 @@ complaint_counts[:10]
 # TODO: rewrite the above using the polars library
 pl_most_complaints = (
     pl_complaints.select(pl.col("Complaint Type"))
-    .to_series()
+    .to_series()  # I think not necessary
     .value_counts()
     .sort("count", descending=True)
     .head(10)
